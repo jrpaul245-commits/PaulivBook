@@ -40,7 +40,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .nav-item:hover{background:var(--surface2);color:var(--text);}
 .nav-item.active{background:var(--accent);color:#fff;}
 .nav-item.active .nav-icon{filter:brightness(10);}
-.nav-icon{font-size:16px;width:20px;text-align:center;}
 .nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:20px;min-width:18px;text-align:center;}
 .sidebar-footer{padding:14px 10px;border-top:1px solid var(--border);}
 .user-chip{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface2);}
@@ -146,13 +145,36 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 .portfolio-link{font-size:.78rem;color:var(--info);text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-top:4px;}
 .portfolio-link:hover{text-decoration:underline;}
 .divider{height:1px;background:var(--border);margin:16px 0;}
-.proof-img{width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border);}
+
+.proof-img{width:100%;max-height:200px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border);cursor:zoom-in;transition:.15s;}
+.proof-img:hover{opacity:.88;}
+.proof-video{width:100%;max-height:220px;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border);display:block;background:#000;}
 .proof-preview{width:100%;max-height:140px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border);display:none;}
+.video-preview-wrap{margin-top:8px;display:none;}
+.video-preview-wrap video{width:100%;max-height:160px;border-radius:var(--radius-sm);border:1px solid var(--border);}
+.media-type-toggle{display:flex;gap:8px;margin-bottom:8px;}
+.media-toggle-btn{flex:1;padding:8px;border-radius:var(--radius-sm);border:1px solid var(--border);background:var(--surface2);cursor:pointer;font-size:.8rem;font-weight:700;color:var(--text2);transition:.15s;font-family:inherit;}
+.media-toggle-btn.active{background:var(--accent);color:#fff;border-color:var(--accent);}
+
 .img-upload-area{border:2px dashed var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;transition:.2s;margin-top:6px;}
 .img-upload-area:hover{border-color:var(--accent);background:rgba(92,184,0,.04);}
 .img-upload-area p{font-size:.78rem;color:var(--text3);margin-top:4px;}
 
-/* ── CROP MODAL ── */
+/* ── MODERATION BANNER ── */
+.mod-banner{display:none;align-items:center;gap:10px;padding:10px 14px;border-radius:var(--radius-sm);font-size:.8rem;font-weight:700;margin-top:8px;}
+.mod-banner.checking{background:#eff6ff;color:#1d4ed8;border:1px solid #bfdbfe;display:flex;}
+.mod-banner.blocked{background:#fff0f0;color:var(--danger);border:1px solid #ffd0d0;display:flex;}
+.mod-banner.ok{background:#f0fdf4;color:#166534;border:1px solid #bbf7d0;display:flex;}
+.mod-spinner{width:14px;height:14px;border:2px solid currentColor;border-top-color:transparent;border-radius:50%;animation:spin .7s linear infinite;flex-shrink:0;}
+@keyframes spin{to{transform:rotate(360deg)}}
+
+#lightbox{position:fixed;inset:0;background:rgba(0,0,0,.92);display:none;justify-content:center;align-items:center;z-index:2000;cursor:zoom-out;backdrop-filter:blur(6px);}
+#lightbox.open{display:flex;}
+#lightbox img{max-width:92vw;max-height:88vh;border-radius:12px;box-shadow:0 8px 60px rgba(0,0,0,.7);animation:lbIn .2s ease;}
+#lightbox-close{position:fixed;top:18px;right:22px;color:#fff;font-size:1.8rem;cursor:pointer;opacity:.8;background:none;border:none;line-height:1;}
+#lightbox-close:hover{opacity:1;}
+@keyframes lbIn{from{opacity:0;transform:scale(.94)}to{opacity:1;transform:scale(1)}}
+
 #overlay-crop{z-index:1100;}
 #overlay-crop .modal{max-width:480px;}
 .crop-container{position:relative;width:100%;height:300px;background:#111;border-radius:var(--radius-sm);overflow:hidden;cursor:grab;user-select:none;}
@@ -179,6 +201,11 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 </style>
 </head>
 <body>
+
+<div id="lightbox" onclick="closeLightbox()">
+  <button id="lightbox-close" onclick="closeLightbox()">✕</button>
+  <img id="lightbox-img" src="" alt="Full view">
+</div>
 
 <button class="hamburger" onclick="toggleSidebar()">☰</button>
 
@@ -251,7 +278,6 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
             <div class="avatar-preview" id="settingsAvPreview" style="background:#5cb800">?</div>
             <div>
               <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px;">Profile picture</p>
-              <!-- Changed: now triggers crop flow instead of direct upload -->
               <label class="upload-btn">📷 Upload Photo<input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="openCropModal(this)"></label>
               <div class="upload-progress" id="uploadProgress">Uploading...</div>
               <p style="font-size:.72rem;color:var(--text3);margin-top:6px;">or pick a color:</p>
@@ -313,7 +339,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
 
 <button class="plus-fab" onclick="openModal('post')">+</button>
 
-<!-- MODALS -->
+<!-- POST MODAL -->
 <div class="overlay" id="overlay-post">
   <div class="modal">
     <h3 id="postModalTitle">Create Profile</h3>
@@ -334,24 +360,57 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
         </div>
       </div>
       <div class="form-group"><label>Portfolio URL (optional)</label><input id="postPortfolio" placeholder="https://..."></div>
+
+      <!-- MEDIA SECTION -->
       <div class="form-group">
-        <label>Proof Picture (optional)</label>
-        <div class="img-upload-area" onclick="document.getElementById('proofFileInput').click()">
-          <span style="font-size:1.4rem;">🖼️</span>
-          <p>Click to upload a proof photo (max 3MB)</p>
-          <input type="file" id="proofFileInput" accept="image/*" style="display:none;" onchange="previewProof(this)">
+        <label>Proof Media (optional)</label>
+        <div class="media-type-toggle">
+          <button type="button" class="media-toggle-btn active" id="togglePhoto" onclick="switchMediaType('photo')">🖼️ Photo</button>
+          <button type="button" class="media-toggle-btn" id="toggleVideo" onclick="switchMediaType('video')">🎬 Video</button>
         </div>
-        <img id="proofPreview" class="proof-preview">
+
+        <!-- Photo upload -->
+        <div id="photoUploadSection">
+          <div class="img-upload-area" onclick="document.getElementById('proofFileInput').click()">
+            <span style="font-size:1.4rem;">🖼️</span>
+            <p>Click to upload a proof photo (max 5MB)</p>
+            <input type="file" id="proofFileInput" accept="image/*" style="display:none;" onchange="previewProof(this)">
+          </div>
+          <img id="proofPreview" class="proof-preview">
+        </div>
+
+        <!-- Video upload -->
+        <div id="videoUploadSection" style="display:none;">
+          <div class="img-upload-area" onclick="document.getElementById('proofVideoInput').click()">
+            <span style="font-size:1.4rem;">🎬</span>
+            <p>Click to upload a video (MP4/WebM, max 50MB)</p>
+            <input type="file" id="proofVideoInput" accept="video/mp4,video/webm,video/*" style="display:none;" onchange="previewVideo(this)">
+          </div>
+          <div class="video-preview-wrap" id="videoPreviewWrap">
+            <video id="videoPreviewEl" controls></video>
+          </div>
+          <!-- Hidden canvas for video thumbnail extraction -->
+          <canvas id="videoThumbCanvas" style="display:none;"></canvas>
+        </div>
+
+        <!-- ── MODERATION BANNER ── -->
+        <div class="mod-banner" id="modBanner">
+          <div class="mod-spinner" id="modSpinner" style="display:none;"></div>
+          <span id="modMsg"></span>
+        </div>
+
         <div id="proofUploadStatus" style="font-size:.75rem;color:var(--accent2);margin-top:4px;display:none;">Uploading...</div>
       </div>
+
       <div class="modal-btns">
-        <button type="submit" class="btn btn-primary">Post</button>
+        <button type="submit" class="btn btn-primary" id="postSubmitBtn">Post</button>
         <button type="button" class="btn btn-secondary" onclick="closeModal('post')">Cancel</button>
       </div>
     </form>
   </div>
 </div>
 
+<!-- RATE MODAL -->
 <div class="overlay" id="overlay-rate">
   <div class="modal">
     <h3>⭐ Rate this person</h3>
@@ -371,6 +430,7 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
+<!-- MESSAGE MODAL -->
 <div class="overlay" id="overlay-message">
   <div class="modal">
     <h3 id="messageModalTitle">Send Message</h3>
@@ -382,14 +442,13 @@ body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(-
   </div>
 </div>
 
-<!-- ── CROP MODAL (NEW) ── -->
+<!-- CROP MODAL -->
 <div class="overlay" id="overlay-crop">
   <div class="modal">
     <h3>✂️ Crop Profile Photo</h3>
     <p style="font-size:.8rem;color:var(--text2);margin-bottom:12px;">Drag to reposition · Use slider to zoom</p>
     <div class="crop-container" id="cropContainer">
       <img id="cropImg" src="" alt="crop">
-      <!-- Circle overlay mask -->
       <div class="crop-circle-mask">
         <svg viewBox="0 0 100 100" preserveAspectRatio="none">
           <defs>
@@ -439,68 +498,252 @@ let ratingTarget={postId:null,name:null,uid:null,email:null};
 let msgTarget={uid:null,name:null,email:null};
 let currentHireTab="sent";
 let pendingRating=0;
+let currentMediaType="photo";
 
-// ── CROP STATE ──
-let cropState={
-  file:null,
-  imgEl:null,
-  scale:1,
-  offsetX:0,
-  offsetY:0,
-  isDragging:false,
-  startX:0,
-  startY:0,
-  lastOffsetX:0,
-  lastOffsetY:0,
-  naturalW:0,
-  naturalH:0,
-  containerW:0,
-  containerH:0,
+// ── MODERATION STATE ──
+// "idle" | "checking" | "ok" | "blocked"
+let modState="idle";
+
+// ══════════════════════════════════
+// ── AI CONTENT MODERATION (NEW) ──
+// ══════════════════════════════════
+
+/**
+ * Converts a File to a base64 string (data URL stripped of prefix).
+ */
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const reader=new FileReader();
+    reader.onload=()=>{
+      // Strip "data:image/jpeg;base64," prefix — keep only the raw base64 data
+      const b64=reader.result.split(",")[1];
+      resolve(b64);
+    };
+    reader.onerror=()=>reject(new Error("Read failed"));
+    reader.readAsDataURL(file);
+  });
+}
+
+/**
+ * Extracts the first frame of a video as a base64 JPEG using a hidden canvas.
+ * Returns null if extraction fails.
+ */
+function extractVideoThumbnail(videoFile){
+  return new Promise((resolve)=>{
+    const url=URL.createObjectURL(videoFile);
+    const video=document.createElement("video");
+    video.src=url;
+    video.muted=true;
+    video.playsInline=true;
+    video.currentTime=0.5; // grab 0.5s in to avoid pure-black first frame
+    video.addEventListener("seeked",()=>{
+      const canvas=document.getElementById("videoThumbCanvas");
+      canvas.width=video.videoWidth||640;
+      canvas.height=video.videoHeight||360;
+      const ctx=canvas.getContext("2d");
+      ctx.drawImage(video,0,0,canvas.width,canvas.height);
+      const dataUrl=canvas.toDataURL("image/jpeg",0.85);
+      URL.revokeObjectURL(url);
+      resolve(dataUrl.split(",")[1]); // return raw base64
+    },{once:true});
+    video.addEventListener("error",()=>{URL.revokeObjectURL(url);resolve(null);},{once:true});
+    video.load();
+  });
+}
+
+/**
+ * Calls the Anthropic API to moderate an image (supplied as base64 JPEG/PNG).
+ * Returns: { safe: boolean, reason: string }
+ */
+async function moderateImageBase64(base64Data, mediaType="image/jpeg"){
+  try{
+    const response=await fetch("https://api.anthropic.com/v1/messages",{
+      method:"POST",
+      headers:{"Content-Type":"application/json"},
+      body:JSON.stringify({
+        model:"claude-sonnet-4-20250514",
+        max_tokens:200,
+        system:`You are a strict content moderation system for a professional skills marketplace.
+Your ONLY job is to decide if an uploaded image is safe or not.
+
+BLOCKED content (mark as UNSAFE):
+- Nudity, partial nudity, or sexually suggestive content
+- Graphic violence, gore, or disturbing imagery
+- Hate symbols or offensive content
+- Anything inappropriate for a professional workplace setting
+
+ALLOWED content (mark as SAFE):
+- Professional work samples (designs, code screenshots, photos of work)
+- Headshots or professional photos of people fully clothed
+- Portfolios, diagrams, infographics
+- Everyday objects, places, tools
+
+Respond with ONLY a valid JSON object, nothing else:
+{"safe": true} or {"safe": false, "reason": "short reason in Filipino or English"}`,
+        messages:[{
+          role:"user",
+          content:[
+            {type:"image",source:{type:"base64",media_type:mediaType,data:base64Data}},
+            {type:"text",text:"Is this image safe to post on a professional skills marketplace?"}
+          ]
+        }]
+      })
+    });
+    const data=await response.json();
+    const text=(data.content||[]).map(c=>c.text||"").join("").trim();
+    // Strip any accidental markdown fences
+    const clean=text.replace(/```json|```/g,"").trim();
+    const parsed=JSON.parse(clean);
+    return{safe:!!parsed.safe,reason:parsed.reason||""};
+  }catch(err){
+    console.warn("Moderation API error:",err);
+    // On network/parse error, allow upload but log
+    return{safe:true,reason:""};
+  }
+}
+
+/**
+ * Main moderation function — called after user selects a file.
+ * Sets modState and updates UI banner.
+ * Returns true if safe (upload may proceed), false if blocked.
+ */
+async function runModeration(file, type="photo"){
+  const banner=document.getElementById("modBanner");
+  const msgEl=document.getElementById("modMsg");
+  const spinner=document.getElementById("modSpinner");
+  const submitBtn=document.getElementById("postSubmitBtn");
+
+  // Show checking state
+  modState="checking";
+  banner.className="mod-banner checking";
+  spinner.style.display="inline-block";
+  msgEl.textContent="Checking content...";
+  submitBtn.disabled=true;
+
+  let base64=null;
+  let mimeType="image/jpeg";
+
+  if(type==="photo"){
+    mimeType=file.type||"image/jpeg";
+    base64=await fileToBase64(file);
+  } else {
+    // Extract thumbnail frame from video
+    base64=await extractVideoThumbnail(file);
+    mimeType="image/jpeg";
+  }
+
+  if(!base64){
+    // Could not read file — allow through
+    modState="ok";
+    banner.className="mod-banner ok";
+    spinner.style.display="none";
+    msgEl.textContent="✅ Content looks good!";
+    submitBtn.disabled=false;
+    return true;
+  }
+
+  const result=await moderateImageBase64(base64,mimeType);
+
+  if(result.safe){
+    modState="ok";
+    banner.className="mod-banner ok";
+    spinner.style.display="none";
+    msgEl.textContent="✅ Content looks good!";
+    submitBtn.disabled=false;
+    return true;
+  } else {
+    modState="blocked";
+    banner.className="mod-banner blocked";
+    spinner.style.display="none";
+    msgEl.textContent="🚫 Hindi pwede i-upload ang media na ito. " + (result.reason||"Bastos o inappropriate ang content.");
+    submitBtn.disabled=true;
+    return false;
+  }
+}
+
+// Reset moderation state (called when modal opens / media removed)
+function resetModeration(){
+  modState="idle";
+  const banner=document.getElementById("modBanner");
+  banner.className="mod-banner";
+  banner.style.display="none";
+  document.getElementById("postSubmitBtn").disabled=false;
+}
+
+// ══════════════════════════════════
+// ── LIGHTBOX ──
+// ══════════════════════════════════
+window.openLightbox=function(src){
+  document.getElementById("lightbox-img").src=src;
+  document.getElementById("lightbox").classList.add("open");
+  document.body.style.overflow="hidden";
+};
+window.closeLightbox=function(){
+  document.getElementById("lightbox").classList.remove("open");
+  document.body.style.overflow="";
+};
+document.addEventListener("keydown",e=>{if(e.key==="Escape") closeLightbox();});
+
+// ══════════════════════════════════
+// ── MEDIA TYPE TOGGLE ──
+// ══════════════════════════════════
+window.switchMediaType=function(type){
+  currentMediaType=type;
+  document.getElementById("togglePhoto").classList.toggle("active",type==="photo");
+  document.getElementById("toggleVideo").classList.toggle("active",type==="video");
+  document.getElementById("photoUploadSection").style.display=type==="photo"?"block":"none";
+  document.getElementById("videoUploadSection").style.display=type==="video"?"block":"none";
+  resetModeration();
 };
 
-// ── Open crop modal when user picks a file ──
+window.previewVideo=async function(input){
+  const file=input.files[0];
+  if(!file)return;
+  if(file.size>50*1024*1024){alert("Video too large! Max 50MB.");input.value="";return;}
+  const wrap=document.getElementById("videoPreviewWrap");
+  const vid=document.getElementById("videoPreviewEl");
+  vid.src=URL.createObjectURL(file);
+  wrap.style.display="block";
+  // Run moderation on video thumbnail
+  await runModeration(file,"video");
+};
+
+// ── CROP MODAL ──
+let cropState={
+  file:null,scale:1,offsetX:0,offsetY:0,isDragging:false,
+  startX:0,startY:0,lastOffsetX:0,lastOffsetY:0,
+  naturalW:0,naturalH:0,containerW:0,containerH:0,
+};
+
 window.openCropModal=function(input){
   const file=input.files[0];
-  if(!file) return;
+  if(!file)return;
   if(file.size>10*1024*1024){alert("File too large! Max 10MB.");return;}
   input.value="";
   cropState.file=file;
-
-  // Open modal first so container has real dimensions
   openModal("crop");
-
   const url=URL.createObjectURL(file);
   const img=document.getElementById("cropImg");
-  // Reset transform while loading
   img.style.cssText="position:absolute;";
   img.src="";
-
   img.onload=()=>{
     cropState.naturalW=img.naturalWidth;
     cropState.naturalH=img.naturalHeight;
     const container=document.getElementById("cropContainer");
-    // Use offsetWidth/offsetHeight which work even if display:flex
-    const cW=container.offsetWidth||container.clientWidth||300;
-    const cH=container.offsetHeight||container.clientHeight||300;
-    cropState.containerW=cW;
-    cropState.containerH=cH;
-    // Scale so image fully covers the container (cover mode)
-    const scaleToFitW=cW/cropState.naturalW;
-    const scaleToFitH=cH/cropState.naturalH;
-    const initScale=Math.max(scaleToFitW,scaleToFitH);
+    const cW=container.offsetWidth||300;
+    const cH=container.offsetHeight||300;
+    cropState.containerW=cW;cropState.containerH=cH;
+    const initScale=Math.max(cW/cropState.naturalW,cH/cropState.naturalH);
     cropState.scale=initScale;
     document.getElementById("cropZoom").min=initScale*0.8;
     document.getElementById("cropZoom").max=initScale*4;
     document.getElementById("cropZoom").step=0.001;
     document.getElementById("cropZoom").value=initScale;
-    // Center image
-    cropState.offsetX=(cW - cropState.naturalW*initScale)/2;
-    cropState.offsetY=(cH - cropState.naturalH*initScale)/2;
+    cropState.offsetX=(cW-cropState.naturalW*initScale)/2;
+    cropState.offsetY=(cH-cropState.naturalH*initScale)/2;
     updateCropTransform();
   };
-
-  // Small delay so modal is painted and container has dimensions
-  setTimeout(()=>{ img.src=url; }, 80);
+  setTimeout(()=>{img.src=url;},80);
 };
 
 function updateCropTransform(){
@@ -511,12 +754,9 @@ function updateCropTransform(){
   img.style.top=cropState.offsetY+"px";
 }
 
-// Zoom slider
 document.getElementById("cropZoom").addEventListener("input",function(){
   const newScale=parseFloat(this.value);
-  // Zoom toward center of container
-  const cx=cropState.containerW/2;
-  const cy=cropState.containerH/2;
+  const cx=cropState.containerW/2,cy=cropState.containerH/2;
   const ratio=newScale/cropState.scale;
   cropState.offsetX=cx-(cx-cropState.offsetX)*ratio;
   cropState.offsetY=cy-(cy-cropState.offsetY)*ratio;
@@ -524,89 +764,39 @@ document.getElementById("cropZoom").addEventListener("input",function(){
   updateCropTransform();
 });
 
-// Drag
-const container=document.getElementById("cropContainer");
-container.addEventListener("mousedown",e=>{
-  cropState.isDragging=true;
-  cropState.startX=e.clientX;
-  cropState.startY=e.clientY;
-  cropState.lastOffsetX=cropState.offsetX;
-  cropState.lastOffsetY=cropState.offsetY;
-  e.preventDefault();
-});
-container.addEventListener("touchstart",e=>{
-  const t=e.touches[0];
-  cropState.isDragging=true;
-  cropState.startX=t.clientX;
-  cropState.startY=t.clientY;
-  cropState.lastOffsetX=cropState.offsetX;
-  cropState.lastOffsetY=cropState.offsetY;
-},{passive:true});
-
-document.addEventListener("mousemove",e=>{
-  if(!cropState.isDragging) return;
-  cropState.offsetX=cropState.lastOffsetX+(e.clientX-cropState.startX);
-  cropState.offsetY=cropState.lastOffsetY+(e.clientY-cropState.startY);
-  updateCropTransform();
-});
-document.addEventListener("touchmove",e=>{
-  if(!cropState.isDragging) return;
-  const t=e.touches[0];
-  cropState.offsetX=cropState.lastOffsetX+(t.clientX-cropState.startX);
-  cropState.offsetY=cropState.lastOffsetY+(t.clientY-cropState.startY);
-  updateCropTransform();
-},{passive:true});
-
+const cropCont=document.getElementById("cropContainer");
+cropCont.addEventListener("mousedown",e=>{cropState.isDragging=true;cropState.startX=e.clientX;cropState.startY=e.clientY;cropState.lastOffsetX=cropState.offsetX;cropState.lastOffsetY=cropState.offsetY;e.preventDefault();});
+cropCont.addEventListener("touchstart",e=>{const t=e.touches[0];cropState.isDragging=true;cropState.startX=t.clientX;cropState.startY=t.clientY;cropState.lastOffsetX=cropState.offsetX;cropState.lastOffsetY=cropState.offsetY;},{passive:true});
+document.addEventListener("mousemove",e=>{if(!cropState.isDragging)return;cropState.offsetX=cropState.lastOffsetX+(e.clientX-cropState.startX);cropState.offsetY=cropState.lastOffsetY+(e.clientY-cropState.startY);updateCropTransform();});
+document.addEventListener("touchmove",e=>{if(!cropState.isDragging)return;const t=e.touches[0];cropState.offsetX=cropState.lastOffsetX+(t.clientX-cropState.startX);cropState.offsetY=cropState.lastOffsetY+(t.clientY-cropState.startY);updateCropTransform();},{passive:true});
 document.addEventListener("mouseup",()=>{cropState.isDragging=false;});
 document.addEventListener("touchend",()=>{cropState.isDragging=false;});
 
-// ── Apply crop: draw circle region onto canvas → upload ──
 window.applyCrop=async function(){
   const btn=document.getElementById("cropApplyBtn");
   btn.textContent="Uploading...";btn.disabled=true;
-
   const container=document.getElementById("cropContainer");
-  const cW=container.clientWidth;
-  const cH=container.clientHeight;
-  // Circle region in container coords: centered, radius = 38% of container dimension
+  const cW=container.clientWidth,cH=container.clientHeight;
   const r=Math.min(cW,cH)*0.38;
-  const cx=cW/2;
-  const cy=cH/2;
-
-  // Output canvas: 400×400 circle crop
+  const cx=cW/2,cy=cH/2;
   const OUTPUT=400;
   const canvas=document.createElement("canvas");
   canvas.width=OUTPUT;canvas.height=OUTPUT;
   const ctx=canvas.getContext("2d");
-
-  // Clip to circle
-  ctx.beginPath();
-  ctx.arc(OUTPUT/2,OUTPUT/2,OUTPUT/2,0,Math.PI*2);
-  ctx.clip();
-
-  // Map: what part of the original image maps to the circle bounding box?
-  // Circle bounding box in container: [cx-r, cy-r, 2r, 2r]
-  const boxX=cx-r;
-  const boxY=cy-r;
-  const boxSize=2*r;
-
-  // In image coords:
+  ctx.beginPath();ctx.arc(OUTPUT/2,OUTPUT/2,OUTPUT/2,0,Math.PI*2);ctx.clip();
+  const boxX=cx-r,boxY=cy-r,boxSize=2*r;
   const imgX=(boxX-cropState.offsetX)/cropState.scale;
   const imgY=(boxY-cropState.offsetY)/cropState.scale;
   const imgSize=boxSize/cropState.scale;
-
   const img=document.getElementById("cropImg");
   ctx.drawImage(img,imgX,imgY,imgSize,imgSize,0,0,OUTPUT,OUTPUT);
-
-  // Convert canvas to blob
   canvas.toBlob(async(blob)=>{
-    if(!blob){btn.textContent="✅ Use This Photo";btn.disabled=false;alert("Crop failed, try again.");return;}
+    if(!blob){btn.textContent="✅ Use This Photo";btn.disabled=false;alert("Crop failed.");return;}
     const prog=document.getElementById("uploadProgress");
     prog.style.display="block";prog.textContent="Uploading...";
-    const ext="jpg";
-    const path=`${currentUser.uid}/avatar_${Date.now()}.${ext}`;
+    const path=`${currentUser.uid}/avatar_${Date.now()}.jpg`;
     const{error}=await supabase.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});
-    if(error){prog.textContent="❌ Error: "+error.message;btn.textContent="✅ Use This Photo";btn.disabled=false;return;}
+    if(error){prog.textContent="❌ "+error.message;btn.textContent="✅ Use This Photo";btn.disabled=false;return;}
     const{data}=supabase.storage.from("avatars").getPublicUrl(path);
     const avatarUrl=data.publicUrl+"?t="+Date.now();
     currentUserSettings.avatarUrl=avatarUrl;
@@ -618,13 +808,7 @@ window.applyCrop=async function(){
     btn.textContent="✅ Use This Photo";btn.disabled=false;
   },"image/jpeg",0.92);
 };
-
-window.cancelCrop=function(){
-  closeModal("crop");
-  // Revoke object url to free memory
-  const img=document.getElementById("cropImg");
-  if(img.src) URL.revokeObjectURL(img.src);
-};
+window.cancelCrop=function(){closeModal("crop");const img=document.getElementById("cropImg");if(img.src)URL.revokeObjectURL(img.src);};
 
 onAuthStateChanged(auth,async(user)=>{
   if(user){
@@ -633,16 +817,9 @@ onAuthStateChanged(auth,async(user)=>{
     document.getElementById("settingsEmail").textContent=user.email;
     const uSnap=await getDoc(doc(db,"userSettings",user.uid));
     if(uSnap.exists()){currentUserSettings=uSnap.data();applyUserSettings();}
-    if(ADMIN_EMAILS.includes(user.email)){
-      document.getElementById("adminNav").style.display="flex";
-      document.getElementById("sidebarRole").textContent="Admin";
-    }
-    listenInbox();
-    listenHireRequests();
-    renderFeed();
-  } else {
-    window.location.href="index.html";
-  }
+    if(ADMIN_EMAILS.includes(user.email)){document.getElementById("adminNav").style.display="flex";document.getElementById("sidebarRole").textContent="Admin";}
+    listenInbox();listenHireRequests();renderFeed();
+  } else {window.location.href="index.html";}
 });
 
 function getAvatarHtml(p,size=46){
@@ -658,25 +835,16 @@ function applyUserSettings(){
   const initials=(s.displayName||currentUser.email||"?").charAt(0).toUpperCase();
   const color=s.avatarColor||"#5cb800";
   const sidebarAv=document.getElementById("sidebarAv");
-  if(s.avatarUrl){
-    sidebarAv.innerHTML=`<img src="${s.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
-  } else {
-    sidebarAv.textContent=initials;
-    sidebarAv.style.background=color;
-  }
+  if(s.avatarUrl){sidebarAv.innerHTML=`<img src="${s.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;}
+  else{sidebarAv.textContent=initials;sidebarAv.style.background=color;}
   const prev=document.getElementById("settingsAvPreview");
-  if(s.avatarUrl){
-    prev.innerHTML=`<img src="${s.avatarUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;">`;
-    prev.style.background="transparent";
-  } else {
-    prev.innerHTML=initials;
-    prev.style.background=color;
-  }
+  if(s.avatarUrl){prev.innerHTML=`<img src="${s.avatarUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;">`;prev.style.background="transparent";}
+  else{prev.innerHTML=initials;prev.style.background=color;}
   document.getElementById("settingsName").value=s.displayName||"";
   document.getElementById("settingsBio").value=s.bio||"";
   document.getElementById("settingsPortfolio").value=s.portfolioUrl||"";
   document.querySelectorAll(".swatch").forEach(sw=>{sw.classList.toggle("selected",sw.dataset.color===color);});
-  if(s.theme==="dark") applyDark(); else applyLight();
+  if(s.theme==="dark")applyDark();else applyLight();
 }
 
 window.goTo=function(page){
@@ -684,9 +852,9 @@ window.goTo=function(page){
   document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
   document.getElementById("page-"+page).classList.add("active");
   document.querySelector(`[data-page="${page}"]`).classList.add("active");
-  if(page==="hire-requests") renderHireTab(currentHireTab);
-  if(page==="admin") loadAdminData();
-  if(window.innerWidth<=768) document.getElementById("sidebar").classList.remove("open");
+  if(page==="hire-requests")renderHireTab(currentHireTab);
+  if(page==="admin")loadAdminData();
+  if(window.innerWidth<=768)document.getElementById("sidebar").classList.remove("open");
 };
 
 function renderFeed(){
@@ -698,14 +866,22 @@ function renderFeed(){
     const docs=[...snap.docs].sort((a,b)=>b.data().createdAt-a.data().createdAt);
     docs.forEach(d=>{
       const p=d.data();const id=d.id;
-      if(currentSearch&&!p.title.toLowerCase().includes(currentSearch)&&!p.skills.toLowerCase().includes(currentSearch)&&!p.name.toLowerCase().includes(currentSearch)) return;
-      if(currentFilter&&!(p.tags||[]).includes(currentFilter)) return;
+      if(currentSearch&&!p.title.toLowerCase().includes(currentSearch)&&!p.skills.toLowerCase().includes(currentSearch)&&!p.name.toLowerCase().includes(currentSearch))return;
+      if(currentFilter&&!(p.tags||[]).includes(currentFilter))return;
       count++;
       const isOwner=currentUser&&p.uid===currentUser.uid;
       const avg=p.ratingCount?(p.ratingSum/p.ratingCount).toFixed(1):null;
       const tagsHtml=(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join("");
       const portfolioHtml=p.portfolioUrl?`<a class="portfolio-link" href="${p.portfolioUrl}" target="_blank">🔗 Portfolio</a>`:"";
       const starsHtml=avg?`<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="color:#f59e0b;font-size:13px;">${"★".repeat(Math.round(avg))}</span><span style="font-size:.75rem;color:var(--text3);">${avg} (${p.ratingCount})</span></div>`:"";
+
+      let mediaHtml="";
+      if(p.proofVideoUrl){
+        mediaHtml=`<video class="proof-video" src="${p.proofVideoUrl}" controls preload="metadata" playsinline></video>`;
+      } else if(p.proofUrl){
+        mediaHtml=`<img src="${p.proofUrl}" class="proof-img" alt="Proof photo" onclick="openLightbox('${p.proofUrl}')" title="Click to view full size">`;
+      }
+
       const card=document.createElement("div");
       card.className="card profile-card";
       card.innerHTML=`
@@ -720,7 +896,7 @@ function renderFeed(){
         <div class="tag-row">${tagsHtml}</div>
         <p class="skills-text">${p.skills}</p>
         ${portfolioHtml}
-        ${p.proofUrl?`<img src="${p.proofUrl}" class="proof-img" alt="Proof photo">`:""}
+        ${mediaHtml}
         <div class="btn-row">
           ${isOwner?`
             <span class="owner-label">Your post</span>
@@ -734,7 +910,7 @@ function renderFeed(){
         </div>`;
       feed.appendChild(card);
     });
-    if(count===0) feed.innerHTML=`<div class="empty-state"><div class="icon">😶</div><p>No profiles found.</p></div>`;
+    if(count===0)feed.innerHTML=`<div class="empty-state"><div class="icon">😶</div><p>No profiles found.</p></div>`;
   });
 }
 
@@ -746,15 +922,16 @@ function colorFromName(name){
 window.setFilter=function(f){
   currentFilter=f;
   document.querySelectorAll("[data-filter]").forEach(el=>el.classList.toggle("active-filter",el.dataset.filter===f));
-  renderFeed();
 };
 
 document.getElementById("searchInput").addEventListener("keyup",e=>{
   currentSearch=e.target.value.toLowerCase().trim();
-  renderFeed();
 });
 
-window.openModal=function(type){document.getElementById("overlay-"+type).classList.add("open");};
+window.openModal=function(type){
+  document.getElementById("overlay-"+type).classList.add("open");
+  if(type==="post") resetModeration();
+};
 window.closeModal=function(type){document.getElementById("overlay-"+type).classList.remove("open");};
 
 window.openEditPost=async function(id){
@@ -770,40 +947,86 @@ window.openEditPost=async function(id){
   openModal("post");
 };
 
+// ── SUBMIT POST (with moderation gate) ──
 document.getElementById("skillForm").addEventListener("submit",async e=>{
   e.preventDefault();
-  const submitBtn=e.target.querySelector('[type=submit]');
+
+  // Block submit if moderation flagged content
+  if(modState==="blocked"){
+    alert("Hindi pwede i-post. I-remove ang inappropriate na media.");
+    return;
+  }
+  // Block submit if moderation still running
+  if(modState==="checking"){
+    alert("Sandali lang, nag-che-check pa ang content...");
+    return;
+  }
+
+  const submitBtn=document.getElementById("postSubmitBtn");
   submitBtn.textContent="Posting...";submitBtn.disabled=true;
   const editId=document.getElementById("editPostId").value;
   const tags=[...document.querySelectorAll("#tagCheckboxes input:checked")].map(c=>c.value);
+  const status=document.getElementById("proofUploadStatus");
+
   let proofUrl="";
-  const proofFile=document.getElementById("proofFileInput").files[0];
-  if(proofFile){
-    const status=document.getElementById("proofUploadStatus");
-    status.style.display="block";status.textContent="Uploading proof image...";
-    const ext=proofFile.name.split(".").pop();
-    const path=`proofs/${currentUser.uid}_${Date.now()}.${ext}`;
-    const{error:upErr}=await supabase.storage.from("avatars").upload(path,proofFile,{upsert:true,contentType:proofFile.type});
-    if(!upErr){const{data}=supabase.storage.from("avatars").getPublicUrl(path);proofUrl=data.publicUrl+"?t="+Date.now();}
-    else{status.textContent="⚠️ Proof upload failed, posting without image.";}
+  let proofVideoUrl="";
+
+  if(currentMediaType==="photo"){
+    const proofFile=document.getElementById("proofFileInput").files[0];
+    if(proofFile){
+      status.style.display="block";status.textContent="Uploading photo...";
+      const ext=proofFile.name.split(".").pop();
+      const path=`proofs/${currentUser.uid}_${Date.now()}.${ext}`;
+      const{error:upErr}=await supabase.storage.from("avatars").upload(path,proofFile,{upsert:true,contentType:proofFile.type});
+      if(!upErr){const{data}=supabase.storage.from("avatars").getPublicUrl(path);proofUrl=data.publicUrl+"?t="+Date.now();}
+      else{status.textContent="⚠️ Photo upload failed.";}
+    }
+  } else {
+    const videoFile=document.getElementById("proofVideoInput").files[0];
+    if(videoFile){
+      status.style.display="block";status.textContent="Uploading video... (may take a moment)";
+      const ext=videoFile.name.split(".").pop()||"mp4";
+      const path=`videos/${currentUser.uid}_${Date.now()}.${ext}`;
+      const{error:vErr}=await supabase.storage.from("avatars").upload(path,videoFile,{upsert:true,contentType:videoFile.type});
+      if(!vErr){const{data}=supabase.storage.from("avatars").getPublicUrl(path);proofVideoUrl=data.publicUrl+"?t="+Date.now();status.textContent="✅ Video uploaded!";}
+      else{status.textContent="⚠️ Video upload failed: "+vErr.message;}
+    }
   }
-  const data={name:document.getElementById("fullName").value,title:document.getElementById("jobTitle").value,skills:document.getElementById("skills").value,tags,portfolioUrl:document.getElementById("postPortfolio").value,proofUrl,uid:currentUser.uid,email:currentUser.email,avatarColor:currentUserSettings.avatarColor||"#5cb800",avatarUrl:currentUserSettings.avatarUrl||""};
+
+  const data={
+    name:document.getElementById("fullName").value,
+    title:document.getElementById("jobTitle").value,
+    skills:document.getElementById("skills").value,
+    tags,
+    portfolioUrl:document.getElementById("postPortfolio").value,
+    proofUrl,
+    proofVideoUrl,
+    uid:currentUser.uid,
+    email:currentUser.email,
+    avatarColor:currentUserSettings.avatarColor||"#5cb800",
+    avatarUrl:currentUserSettings.avatarUrl||""
+  };
+
   if(editId){await updateDoc(doc(db,"people",editId),data);}
   else{await addDoc(collection(db,"people"),{...data,createdAt:Date.now(),ratingSum:0,ratingCount:0});}
+
   document.getElementById("editPostId").value="";
   document.getElementById("postModalTitle").textContent="Create Profile";
   document.getElementById("skillForm").reset();
   document.getElementById("proofPreview").style.display="none";
+  document.getElementById("videoPreviewWrap").style.display="none";
   document.getElementById("proofUploadStatus").style.display="none";
+  switchMediaType("photo");
+  resetModeration();
   submitBtn.textContent="Post";submitBtn.disabled=false;
   closeModal("post");
 });
 
-window.deletePost=async function(id){if(confirm("Delete this post?")) await deleteDoc(doc(db,"people",id));};
+window.deletePost=async function(id){if(confirm("Delete this post?"))await deleteDoc(doc(db,"people",id));};
 
 window.openHire=async function(postId,name,recipientEmail){
   if(!recipientEmail||recipientEmail==="undefined"){alert("No email for this user.");return;}
-  if(!confirm(`Send hire request to ${name}?`)) return;
+  if(!confirm(`Send hire request to ${name}?`))return;
   await addDoc(collection(db,"hireRequests"),{fromUid:currentUser.uid,fromEmail:currentUser.email,toName:name,toEmail:recipientEmail,postId,status:"pending",createdAt:Date.now()});
   try{await emailjs.send("service_i9963op","template_swsoomf",{to_email:recipientEmail,from_email:currentUser.email,message:`${currentUser.email} wants to hire you on Skill Finder!`});}catch(e){}
   alert(`✅ Hire request sent to ${name}!`);
@@ -821,8 +1044,7 @@ function listenHireRequests(){
   onSnapshot(qR,snap=>{
     const unread=snap.docs.filter(d=>d.data().status==="pending").length;
     const badge=document.getElementById("hireBadge");
-    if(unread>0){badge.style.display="inline-block";badge.textContent=unread;}
-    else badge.style.display="none";
+    if(unread>0){badge.style.display="inline-block";badge.textContent=unread;}else badge.style.display="none";
   });
 }
 
@@ -830,7 +1052,7 @@ async function renderHireTab(tab){
   const cont=document.getElementById("hireContent");
   cont.innerHTML="<p style='color:var(--text3);font-size:.85rem;padding:20px;'>Loading...</p>";
   let q;
-  if(tab==="sent") q=query(collection(db,"hireRequests"),where("fromUid","==",currentUser.uid));
+  if(tab==="sent")q=query(collection(db,"hireRequests"),where("fromUid","==",currentUser.uid));
   else q=query(collection(db,"hireRequests"),where("toEmail","==",currentUser.email));
   const snap=await getDocs(q);
   if(snap.empty){cont.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>No requests here.</p></div>`;return;}
@@ -840,24 +1062,20 @@ async function renderHireTab(tab){
     const r=d.data();const id=d.id;
     const dateStr=new Date(r.createdAt).toLocaleDateString();
     const statusClass=`status-${r.status}`;
-    const actions=tab==="received"&&r.status==="pending"?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;" onclick="respondHire('${id}','accepted')">Accept</button> <button class="btn btn-danger" style="font-size:.75rem;padding:5px 10px;" onclick="respondHire('${id}','declined')">Decline</button>`:"—";
+    const actions=tab==="received"&&r.status==="pending"?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;" onclick="respondHire('${id}','accepted')">Accept</button> <button class="btn btn-danger" style="font-size:.75px;padding:5px 10px;" onclick="respondHire('${id}','declined')">Decline</button>`:"—";
     rows+=`<tr><td>${tab==="sent"?r.toName:r.fromEmail}</td><td><span class="status-badge ${statusClass}">${r.status}</span></td><td>${dateStr}</td><td>${actions}</td></tr>`;
   });
   cont.innerHTML=`<div style="overflow-x:auto;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);"><table class="req-table"><thead><tr><th>${tab==="sent"?"To":"From"}</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
 }
 
-window.respondHire=async function(id,status){
-  await updateDoc(doc(db,"hireRequests",id),{status});
-  renderHireTab("received");
-};
+window.respondHire=async function(id,status){await updateDoc(doc(db,"hireRequests",id),{status});renderHireTab("received");};
 
 function listenInbox(){
   const q=query(collection(db,"messages"),where("toUid","==",currentUser.uid));
   onSnapshot(q,snap=>{
     const unread=snap.docs.filter(d=>!d.data().read).length;
     const badge=document.getElementById("inboxBadge");
-    if(unread>0){badge.style.display="inline-block";badge.textContent=unread;}
-    else badge.style.display="none";
+    if(unread>0){badge.style.display="inline-block";badge.textContent=unread;}else badge.style.display="none";
     const list=document.getElementById("msgList");
     list.innerHTML="";
     if(snap.empty){list.innerHTML=`<div class="empty-state"><div class="icon">📭</div><p>No messages yet.</p></div>`;return;}
@@ -885,7 +1103,7 @@ window.openMessage=function(uid,name,email){
 
 window.sendMessage=async function(){
   const msg=document.getElementById("messageText").value.trim();
-  if(!msg) return;
+  if(!msg)return;
   await addDoc(collection(db,"messages"),{fromUid:currentUser.uid,fromEmail:currentUser.email,toUid:msgTarget.uid,toName:msgTarget.name,message:msg,read:false,createdAt:Date.now()});
   try{await emailjs.send("service_i9963op","template_swsoomf",{to_email:msgTarget.email,from_email:currentUser.email,message:`${currentUser.email} sent you a message: "${msg}"`});}catch(e){}
   closeModal("message");
@@ -910,7 +1128,7 @@ window.submitRating=async function(){
   if(!pendingRating){alert("Please select a star rating.");return;}
   const ref=doc(db,"people",ratingTarget.postId);
   const snap=await getDoc(ref);
-  if(!snap.exists()) return;
+  if(!snap.exists())return;
   const d=snap.data();
   await updateDoc(ref,{ratingSum:(d.ratingSum||0)+pendingRating,ratingCount:(d.ratingCount||0)+1});
   await addDoc(collection(db,"reviews"),{postId:ratingTarget.postId,toUid:ratingTarget.uid,fromUid:currentUser.uid,fromEmail:currentUser.email,rating:pendingRating,review:document.getElementById("reviewText").value.trim(),createdAt:Date.now()});
@@ -939,7 +1157,7 @@ window.saveSettings=async function(){
 
 window.setTheme=function(t){
   currentUserSettings.theme=t;
-  if(t==="dark") applyDark(); else applyLight();
+  if(t==="dark")applyDark();else applyLight();
   setDoc(doc(db,"userSettings",currentUser.uid),{...currentUserSettings,theme:t});
 };
 
@@ -961,12 +1179,7 @@ function applyLight(){
 }
 
 async function loadAdminData(){
-  const [postsSnap,msgSnap,hireSnap,settingsSnap]=await Promise.all([
-    getDocs(collection(db,"people")),
-    getDocs(collection(db,"messages")),
-    getDocs(collection(db,"hireRequests")),
-    getDocs(collection(db,"userSettings"))
-  ]);
+  const[postsSnap,msgSnap,hireSnap,settingsSnap]=await Promise.all([getDocs(collection(db,"people")),getDocs(collection(db,"messages")),getDocs(collection(db,"hireRequests")),getDocs(collection(db,"userSettings"))]);
   document.getElementById("statPosts").textContent=postsSnap.size;
   document.getElementById("statMessages").textContent=msgSnap.size;
   document.getElementById("statHires").textContent=hireSnap.size;
@@ -979,15 +1192,18 @@ async function loadAdminData(){
   document.getElementById("adminTbody").innerHTML=rows||`<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px;">No posts.</td></tr>`;
 }
 
-window.adminDelete=async function(id){if(confirm("Admin delete this post?")) await deleteDoc(doc(db,"people",id));};
-window.logoutUser=async function(){if(confirm("Logout?")) await signOut(auth);};
+window.adminDelete=async function(id){if(confirm("Admin delete this post?"))await deleteDoc(doc(db,"people",id));};
+window.logoutUser=async function(){if(confirm("Logout?"))await signOut(auth);};
 window.toggleSidebar=function(){document.getElementById("sidebar").classList.toggle("open");};
-window.previewProof=function(input){
-  const file=input.files[0];
-  if(!file) return;
+
+// ── previewProof: run moderation after photo is selected ──
+window.previewProof=async function(input){
+  const file=input.files[0];if(!file)return;
   const preview=document.getElementById("proofPreview");
   preview.src=URL.createObjectURL(file);
   preview.style.display="block";
+  // Moderate before allowing post
+  await runModeration(file,"photo");
 };
 </script>
 </body>
