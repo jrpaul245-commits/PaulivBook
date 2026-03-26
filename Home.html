@@ -1,0 +1,994 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Skill Finder</title>
+<link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<script src="https://cdn.jsdelivr.net/npm/@emailjs/browser@4/dist/email.min.js"></script>
+<script>emailjs.init("nEkJzM03qtghfuNEU");</script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --bg:#f4f6f2;
+  --surface:#ffffff;
+  --surface2:#f0f2ee;
+  --accent:#5cb800;
+  --accent2:#3a7a00;
+  --text:#1a1f16;
+  --text2:#5a6354;
+  --text3:#9aaa90;
+  --border:#e0e5da;
+  --danger:#e84040;
+  --warn:#f59e0b;
+  --info:#3b82f6;
+  --radius:14px;
+  --radius-sm:9px;
+  --shadow:0 2px 12px rgba(0,0,0,.07);
+  --shadow-lg:0 8px 32px rgba(0,0,0,.12);
+}
+body{font-family:'Plus Jakarta Sans',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;}
+
+.shell{display:flex;min-height:100vh;}
+.sidebar{width:220px;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;padding:0;position:fixed;top:0;left:0;height:100vh;z-index:100;transition:.3s;}
+.sidebar-logo{padding:22px 20px 16px;border-bottom:1px solid var(--border);}
+.sidebar-logo h1{font-size:1.15rem;font-weight:800;color:var(--accent2);letter-spacing:-.02em;}
+.sidebar-logo span{font-size:.7rem;color:var(--text3);font-weight:500;}
+.nav-items{padding:12px 10px;flex:1;overflow-y:auto;}
+.nav-item{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:var(--radius-sm);cursor:pointer;font-size:.875rem;font-weight:600;color:var(--text2);transition:.15s;position:relative;margin-bottom:2px;}
+.nav-item:hover{background:var(--surface2);color:var(--text);}
+.nav-item.active{background:var(--accent);color:#fff;}
+.nav-item.active .nav-icon{filter:brightness(10);}
+.nav-icon{font-size:16px;width:20px;text-align:center;}
+.nav-badge{margin-left:auto;background:var(--danger);color:#fff;font-size:.65rem;font-weight:700;padding:2px 6px;border-radius:20px;min-width:18px;text-align:center;}
+.sidebar-footer{padding:14px 10px;border-top:1px solid var(--border);}
+.user-chip{display:flex;align-items:center;gap:10px;padding:8px 10px;border-radius:var(--radius-sm);background:var(--surface2);}
+.user-chip .av{width:30px;height:30px;border-radius:50%;background:var(--accent);color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:.8rem;flex-shrink:0;}
+.user-chip .info{overflow:hidden;}
+.user-chip .name{font-size:.75rem;font-weight:700;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;}
+.user-chip .role{font-size:.65rem;color:var(--text3);}
+
+.main{margin-left:220px;flex:1;padding:28px 32px;max-width:1100px;}
+.page{display:none;}
+.page.active{display:block;}
+
+.topbar{display:flex;align-items:center;justify-content:space-between;margin-bottom:24px;flex-wrap:wrap;gap:12px;}
+.topbar h2{font-size:1.35rem;font-weight:800;letter-spacing:-.02em;}
+.search-wrap{display:flex;align-items:center;gap:10px;flex:1;max-width:340px;}
+.search-wrap input{flex:1;padding:9px 14px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:.875rem;font-family:inherit;background:var(--surface);transition:.2s;}
+.search-wrap input:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,184,0,.12);}
+
+.card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:18px;box-shadow:var(--shadow);transition:.2s;}
+.card:hover{box-shadow:var(--shadow-lg);transform:translateY(-2px);}
+.feed-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px;}
+
+.profile-card .ph{display:flex;gap:12px;align-items:flex-start;margin-bottom:10px;}
+.av{width:46px;height:46px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:800;font-size:1.1rem;flex-shrink:0;color:#fff;}
+.profile-card .name{font-weight:700;font-size:.95rem;}
+.profile-card .title{font-size:.78rem;color:var(--text2);margin-top:2px;}
+.profile-card .skills-text{font-size:.8rem;color:var(--text2);margin:8px 0;line-height:1.6;}
+.tag-row{display:flex;flex-wrap:wrap;gap:5px;margin:8px 0;}
+.tag{background:var(--surface2);color:var(--accent2);font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:20px;border:1px solid var(--border);}
+.tag.active-filter{background:var(--accent);color:#fff;border-color:var(--accent);}
+.stars{display:flex;gap:2px;margin:6px 0;}
+.star{font-size:14px;cursor:pointer;color:#e0e0e0;transition:.1s;}
+.star.lit{color:var(--warn);}
+.btn-row{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px;}
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:none;cursor:pointer;font-family:inherit;font-size:.8rem;font-weight:700;transition:.15s;}
+.btn-primary{background:var(--accent);color:#fff;}
+.btn-primary:hover{background:var(--accent2);}
+.btn-secondary{background:var(--surface2);color:var(--text);}
+.btn-secondary:hover{background:var(--border);}
+.btn-danger{background:#fff0f0;color:var(--danger);border:1px solid #ffd0d0;}
+.btn-danger:hover{background:#ffe0e0;}
+.btn-info{background:#eff6ff;color:var(--info);border:1px solid #bfdbfe;}
+.owner-label{font-size:.72rem;color:var(--text3);padding:4px 0;}
+
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.5);display:none;justify-content:center;align-items:center;z-index:999;padding:16px;backdrop-filter:blur(3px);}
+.overlay.open{display:flex;}
+.modal{background:var(--surface);border-radius:var(--radius);padding:26px;width:100%;max-width:440px;box-shadow:var(--shadow-lg);max-height:90vh;overflow-y:auto;}
+.modal h3{font-size:1.05rem;font-weight:800;margin-bottom:16px;}
+.form-group{margin-bottom:12px;}
+.form-group label{display:block;font-size:.78rem;font-weight:600;color:var(--text2);margin-bottom:5px;}
+.form-group input,.form-group textarea,.form-group select{width:100%;padding:9px 12px;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:inherit;font-size:.875rem;background:var(--surface);color:var(--text);transition:.2s;}
+.form-group input:focus,.form-group textarea:focus,.form-group select:focus{outline:none;border-color:var(--accent);box-shadow:0 0 0 3px rgba(92,184,0,.12);}
+.form-group textarea{resize:vertical;min-height:80px;}
+.modal-btns{display:flex;gap:10px;margin-top:16px;}
+.modal-btns .btn{flex:1;padding:10px;}
+
+.filter-bar{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:20px;}
+
+.msg-list{display:flex;flex-direction:column;gap:10px;}
+.msg-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:14px 16px;display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:.15s;}
+.msg-card:hover{border-color:var(--accent);}
+.msg-card.unread{border-left:3px solid var(--accent);}
+.msg-card .msg-body{flex:1;}
+.msg-card .from{font-size:.82rem;font-weight:700;}
+.msg-card .msg-text{font-size:.8rem;color:var(--text2);margin-top:3px;}
+.msg-card .msg-time{font-size:.7rem;color:var(--text3);margin-top:4px;}
+.unread-dot{width:8px;height:8px;border-radius:50%;background:var(--accent);flex-shrink:0;margin-top:4px;}
+
+.req-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.req-table th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:700;color:var(--text2);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;}
+.req-table td{padding:12px 14px;border-bottom:1px solid var(--border);}
+.req-table tr:last-child td{border-bottom:none;}
+.status-badge{display:inline-block;font-size:.7rem;font-weight:700;padding:3px 9px;border-radius:20px;}
+.status-pending{background:#fef3c7;color:#92400e;}
+.status-accepted{background:#d1fae5;color:#065f46;}
+.status-declined{background:#fee2e2;color:#991b1b;}
+
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+.settings-section{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:20px;}
+.settings-section h4{font-size:.9rem;font-weight:700;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);}
+.avatar-preview{width:64px;height:64px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:1.6rem;font-weight:800;color:#fff;margin-bottom:12px;overflow:hidden;object-fit:cover;}
+.av-img{width:100%;height:100%;object-fit:cover;border-radius:50%;}
+.upload-btn{display:inline-block;padding:7px 14px;background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-sm);font-size:.78rem;font-weight:700;cursor:pointer;color:var(--text);transition:.15s;}
+.upload-btn:hover{background:var(--border);}
+.upload-progress{font-size:.75rem;color:var(--accent2);margin-top:6px;display:none;}
+.color-swatches{display:flex;gap:8px;flex-wrap:wrap;margin-top:8px;}
+.swatch{width:28px;height:28px;border-radius:50%;cursor:pointer;transition:.15s;border:2px solid transparent;}
+.swatch.selected{border-color:var(--text);transform:scale(1.15);}
+
+.stats-row{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:12px;margin-bottom:24px;}
+.stat-card{background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);padding:16px;}
+.stat-card .stat-num{font-size:1.6rem;font-weight:800;color:var(--accent2);}
+.stat-card .stat-label{font-size:.75rem;color:var(--text3);margin-top:2px;}
+.admin-table{width:100%;border-collapse:collapse;font-size:.82rem;}
+.admin-table th{text-align:left;padding:10px 14px;border-bottom:2px solid var(--border);font-weight:700;color:var(--text2);font-size:.75rem;text-transform:uppercase;letter-spacing:.04em;}
+.admin-table td{padding:10px 14px;border-bottom:1px solid var(--border);}
+
+.empty-state{text-align:center;padding:48px 20px;color:var(--text3);}
+.empty-state .icon{font-size:2.5rem;margin-bottom:10px;}
+.empty-state p{font-size:.9rem;}
+.plus-fab{position:fixed;bottom:28px;right:28px;width:56px;height:56px;border-radius:50%;background:var(--accent);border:none;color:#fff;font-size:1.6rem;cursor:pointer;box-shadow:0 4px 20px rgba(92,184,0,.4);transition:.2s;z-index:90;}
+.plus-fab:hover{background:var(--accent2);transform:scale(1.08);}
+.portfolio-link{font-size:.78rem;color:var(--info);text-decoration:none;display:inline-flex;align-items:center;gap:4px;margin-top:4px;}
+.portfolio-link:hover{text-decoration:underline;}
+.divider{height:1px;background:var(--border);margin:16px 0;}
+.proof-img{width:100%;max-height:180px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border);}
+.proof-preview{width:100%;max-height:140px;object-fit:cover;border-radius:var(--radius-sm);margin-top:8px;border:1px solid var(--border);display:none;}
+.img-upload-area{border:2px dashed var(--border);border-radius:var(--radius-sm);padding:16px;text-align:center;cursor:pointer;transition:.2s;margin-top:6px;}
+.img-upload-area:hover{border-color:var(--accent);background:rgba(92,184,0,.04);}
+.img-upload-area p{font-size:.78rem;color:var(--text3);margin-top:4px;}
+
+/* ── CROP MODAL ── */
+#overlay-crop{z-index:1100;}
+#overlay-crop .modal{max-width:480px;}
+.crop-container{position:relative;width:100%;height:300px;background:#111;border-radius:var(--radius-sm);overflow:hidden;cursor:grab;user-select:none;}
+.crop-container:active{cursor:grabbing;}
+.crop-container img{position:absolute;transform-origin:top left;}
+.crop-circle-mask{position:absolute;inset:0;pointer-events:none;}
+.crop-circle-mask svg{width:100%;height:100%;}
+.crop-controls{display:flex;flex-direction:column;gap:8px;margin-top:12px;}
+.crop-controls label{font-size:.75rem;font-weight:600;color:var(--text2);}
+.crop-controls input[type=range]{width:100%;accent-color:var(--accent);}
+.crop-hint{font-size:.72rem;color:var(--text3);text-align:center;margin-top:6px;}
+
+.hamburger{display:none;position:fixed;top:14px;left:14px;z-index:200;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:8px 10px;cursor:pointer;font-size:1.1rem;}
+@media(max-width:768px){
+  .sidebar{transform:translateX(-100%);}.sidebar.open{transform:translateX(0);}
+  .main{margin-left:0;padding:16px;padding-top:60px;}
+  .hamburger{display:block;}
+  .feed-grid{grid-template-columns:1fr;}
+  .settings-grid{grid-template-columns:1fr;}
+  .modal{padding:18px;}
+  .stats-row{grid-template-columns:1fr 1fr;}
+  .crop-container{height:240px;}
+}
+</style>
+</head>
+<body>
+
+<button class="hamburger" onclick="toggleSidebar()">☰</button>
+
+<div class="shell">
+  <aside class="sidebar" id="sidebar">
+    <div class="sidebar-logo">
+      <h1>⚡ Skill Finder</h1>
+      <span>Find & hire talent</span>
+    </div>
+    <nav class="nav-items">
+      <div class="nav-item active" onclick="goTo('feed')" data-page="feed"><span class="nav-icon">🏠</span> Feed</div>
+      <div class="nav-item" onclick="goTo('inbox')" data-page="inbox"><span class="nav-icon">💬</span> Inbox<span class="nav-badge" id="inboxBadge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="goTo('hire-requests')" data-page="hire-requests"><span class="nav-icon">💼</span> Hire Requests<span class="nav-badge" id="hireBadge" style="display:none">0</span></div>
+      <div class="nav-item" onclick="goTo('settings')" data-page="settings"><span class="nav-icon">⚙️</span> Settings</div>
+      <div class="nav-item" onclick="goTo('admin')" data-page="admin" id="adminNav" style="display:none"><span class="nav-icon">🔒</span> Admin</div>
+    </nav>
+    <div class="sidebar-footer">
+      <div class="user-chip">
+        <div class="av" id="sidebarAv" style="background:#5cb800">?</div>
+        <div class="info">
+          <div class="name" id="sidebarName">Loading...</div>
+          <div class="role" id="sidebarRole">Member</div>
+        </div>
+      </div>
+      <button class="btn btn-danger" style="width:100%;margin-top:10px;font-size:.8rem;" onclick="logoutUser()">Logout</button>
+    </div>
+  </aside>
+
+  <main class="main">
+    <div class="page active" id="page-feed">
+      <div class="topbar">
+        <h2>Discover Talent</h2>
+        <div class="search-wrap"><input type="text" id="searchInput" placeholder="Search skills, titles..."></div>
+        <button class="btn btn-primary" onclick="openModal('post')">+ Add Profile</button>
+      </div>
+      <div class="filter-bar" id="filterBar">
+        <span class="tag active-filter" onclick="setFilter('')" data-filter="">All</span>
+        <span class="tag" onclick="setFilter('design')" data-filter="design">Design</span>
+        <span class="tag" onclick="setFilter('development')" data-filter="development">Development</span>
+        <span class="tag" onclick="setFilter('marketing')" data-filter="marketing">Marketing</span>
+        <span class="tag" onclick="setFilter('writing')" data-filter="writing">Writing</span>
+        <span class="tag" onclick="setFilter('video')" data-filter="video">Video</span>
+        <span class="tag" onclick="setFilter('finance')" data-filter="finance">Finance</span>
+      </div>
+      <div class="feed-grid" id="feed">
+        <div class="empty-state"><div class="icon">🔍</div><p>Loading profiles...</p></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-inbox">
+      <div class="topbar"><h2>💬 Inbox</h2></div>
+      <div class="msg-list" id="msgList"><div class="empty-state"><div class="icon">📭</div><p>No messages yet.</p></div></div>
+    </div>
+
+    <div class="page" id="page-hire-requests">
+      <div class="topbar"><h2>💼 Hire Requests</h2></div>
+      <div style="display:flex;gap:12px;margin-bottom:16px;flex-wrap:wrap;">
+        <button class="btn btn-primary" id="tabSent" onclick="showHireTab('sent')">Sent</button>
+        <button class="btn btn-secondary" id="tabReceived" onclick="showHireTab('received')">Received</button>
+      </div>
+      <div id="hireContent"><div class="empty-state"><div class="icon">📋</div><p>No hire requests.</p></div></div>
+    </div>
+
+    <div class="page" id="page-settings">
+      <div class="topbar"><h2>⚙️ Settings</h2></div>
+      <div class="settings-grid">
+        <div class="settings-section">
+          <h4>👤 Profile</h4>
+          <div style="display:flex;align-items:center;gap:14px;margin-bottom:16px;">
+            <div class="avatar-preview" id="settingsAvPreview" style="background:#5cb800">?</div>
+            <div>
+              <p style="font-size:.8rem;color:var(--text2);margin-bottom:6px;">Profile picture</p>
+              <!-- Changed: now triggers crop flow instead of direct upload -->
+              <label class="upload-btn">📷 Upload Photo<input type="file" id="avatarFileInput" accept="image/*" style="display:none;" onchange="openCropModal(this)"></label>
+              <div class="upload-progress" id="uploadProgress">Uploading...</div>
+              <p style="font-size:.72rem;color:var(--text3);margin-top:6px;">or pick a color:</p>
+              <div class="color-swatches" id="colorSwatches">
+                <div class="swatch selected" style="background:#5cb800" data-color="#5cb800" onclick="pickColor(this)"></div>
+                <div class="swatch" style="background:#3b82f6" data-color="#3b82f6" onclick="pickColor(this)"></div>
+                <div class="swatch" style="background:#e84040" data-color="#e84040" onclick="pickColor(this)"></div>
+                <div class="swatch" style="background:#f59e0b" data-color="#f59e0b" onclick="pickColor(this)"></div>
+                <div class="swatch" style="background:#8b5cf6" data-color="#8b5cf6" onclick="pickColor(this)"></div>
+                <div class="swatch" style="background:#ec4899" data-color="#ec4899" onclick="pickColor(this)"></div>
+              </div>
+            </div>
+          </div>
+          <div class="form-group"><label>Display Name</label><input id="settingsName" placeholder="Your name"></div>
+          <div class="form-group"><label>Bio</label><textarea id="settingsBio" placeholder="Tell people about yourself..." style="min-height:70px;"></textarea></div>
+          <div class="form-group"><label>Portfolio URL</label><input id="settingsPortfolio" placeholder="https://yourportfolio.com"></div>
+          <button class="btn btn-primary" style="width:100%;" onclick="saveSettings()">Save Changes</button>
+        </div>
+        <div class="settings-section">
+          <h4>🔔 Notifications</h4>
+          <div style="display:flex;flex-direction:column;gap:12px;">
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.875rem;"><input type="checkbox" id="notifMessages" checked style="width:auto;"> Email me on new messages</label>
+            <label style="display:flex;align-items:center;gap:10px;cursor:pointer;font-size:.875rem;"><input type="checkbox" id="notifHire" checked style="width:auto;"> Email me on hire requests</label>
+          </div>
+          <div class="divider"></div>
+          <h4>🌙 Appearance</h4>
+          <div style="display:flex;gap:10px;">
+            <button class="btn btn-secondary" onclick="setTheme('light')" style="flex:1;">☀️ Light</button>
+            <button class="btn btn-secondary" onclick="setTheme('dark')" style="flex:1;">🌙 Dark</button>
+          </div>
+          <div class="divider"></div>
+          <h4>🔐 Account</h4>
+          <p style="font-size:.8rem;color:var(--text2);margin-bottom:10px;" id="settingsEmail">—</p>
+          <button class="btn btn-danger" style="width:100%;" onclick="logoutUser()">Logout</button>
+        </div>
+      </div>
+    </div>
+
+    <div class="page" id="page-admin">
+      <div class="topbar"><h2>🔒 Admin Panel</h2></div>
+      <div class="stats-row" id="adminStats">
+        <div class="stat-card"><div class="stat-num" id="statUsers">-</div><div class="stat-label">Total Users</div></div>
+        <div class="stat-card"><div class="stat-num" id="statPosts">-</div><div class="stat-label">Posts</div></div>
+        <div class="stat-card"><div class="stat-num" id="statMessages">-</div><div class="stat-label">Messages</div></div>
+        <div class="stat-card"><div class="stat-num" id="statHires">-</div><div class="stat-label">Hire Requests</div></div>
+      </div>
+      <div style="background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);overflow:hidden;">
+        <div style="padding:16px 18px;border-bottom:1px solid var(--border);font-weight:700;font-size:.9rem;">All Posts</div>
+        <div style="overflow-x:auto;">
+          <table class="admin-table" id="adminTable">
+            <thead><tr><th>Name</th><th>Title</th><th>Posted by</th><th>Actions</th></tr></thead>
+            <tbody id="adminTbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </main>
+</div>
+
+<button class="plus-fab" onclick="openModal('post')">+</button>
+
+<!-- MODALS -->
+<div class="overlay" id="overlay-post">
+  <div class="modal">
+    <h3 id="postModalTitle">Create Profile</h3>
+    <form id="skillForm">
+      <input type="hidden" id="editPostId">
+      <div class="form-group"><label>Full Name</label><input id="fullName" placeholder="Full Name" required></div>
+      <div class="form-group"><label>Job Title</label><input id="jobTitle" placeholder="e.g. UI/UX Designer" required></div>
+      <div class="form-group"><label>Skills & Experience</label><textarea id="skills" placeholder="Describe your skills..." required></textarea></div>
+      <div class="form-group">
+        <label>Skill Categories</label>
+        <div id="tagCheckboxes" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;"><input type="checkbox" value="design"> Design</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;"><input type="checkbox" value="development"> Development</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;"><input type="checkbox" value="marketing"> Marketing</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;"><input type="checkbox" value="writing"> Writing</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;"><input type="checkbox" value="video"> Video</label>
+          <label style="display:flex;align-items:center;gap:5px;font-size:.8rem;cursor:pointer;"><input type="checkbox" value="finance"> Finance</label>
+        </div>
+      </div>
+      <div class="form-group"><label>Portfolio URL (optional)</label><input id="postPortfolio" placeholder="https://..."></div>
+      <div class="form-group">
+        <label>Proof Picture (optional)</label>
+        <div class="img-upload-area" onclick="document.getElementById('proofFileInput').click()">
+          <span style="font-size:1.4rem;">🖼️</span>
+          <p>Click to upload a proof photo (max 3MB)</p>
+          <input type="file" id="proofFileInput" accept="image/*" style="display:none;" onchange="previewProof(this)">
+        </div>
+        <img id="proofPreview" class="proof-preview">
+        <div id="proofUploadStatus" style="font-size:.75rem;color:var(--accent2);margin-top:4px;display:none;">Uploading...</div>
+      </div>
+      <div class="modal-btns">
+        <button type="submit" class="btn btn-primary">Post</button>
+        <button type="button" class="btn btn-secondary" onclick="closeModal('post')">Cancel</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-rate">
+  <div class="modal">
+    <h3>⭐ Rate this person</h3>
+    <p style="font-size:.85rem;color:var(--text2);margin-bottom:12px;" id="rateTarget">-</p>
+    <div class="stars" id="ratingStars" style="font-size:2rem;">
+      <span class="star" data-v="1" onclick="setRating(1)">★</span>
+      <span class="star" data-v="2" onclick="setRating(2)">★</span>
+      <span class="star" data-v="3" onclick="setRating(3)">★</span>
+      <span class="star" data-v="4" onclick="setRating(4)">★</span>
+      <span class="star" data-v="5" onclick="setRating(5)">★</span>
+    </div>
+    <div class="form-group" style="margin-top:12px;"><label>Review (optional)</label><textarea id="reviewText" placeholder="Write a short review..."></textarea></div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="submitRating()">Submit</button>
+      <button class="btn btn-secondary" onclick="closeModal('rate')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="overlay-message">
+  <div class="modal">
+    <h3 id="messageModalTitle">Send Message</h3>
+    <div class="form-group"><label>Message</label><textarea id="messageText" placeholder="Type your message..."></textarea></div>
+    <div class="modal-btns">
+      <button class="btn btn-primary" onclick="sendMessage()">Send</button>
+      <button class="btn btn-secondary" onclick="closeModal('message')">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CROP MODAL (NEW) ── -->
+<div class="overlay" id="overlay-crop">
+  <div class="modal">
+    <h3>✂️ Crop Profile Photo</h3>
+    <p style="font-size:.8rem;color:var(--text2);margin-bottom:12px;">Drag to reposition · Use slider to zoom</p>
+    <div class="crop-container" id="cropContainer">
+      <img id="cropImg" src="" alt="crop">
+      <!-- Circle overlay mask -->
+      <div class="crop-circle-mask">
+        <svg viewBox="0 0 100 100" preserveAspectRatio="none">
+          <defs>
+            <mask id="circleMask">
+              <rect width="100" height="100" fill="white"/>
+              <circle cx="50" cy="50" r="38" fill="black"/>
+            </mask>
+          </defs>
+          <rect width="100" height="100" fill="rgba(0,0,0,0.55)" mask="url(#circleMask)"/>
+          <circle cx="50" cy="50" r="38" fill="none" stroke="white" stroke-width=".8" stroke-dasharray="3 2"/>
+        </svg>
+      </div>
+    </div>
+    <div class="crop-controls">
+      <label>🔍 Zoom</label>
+      <input type="range" id="cropZoom" min="0.5" max="3" step="0.01" value="1">
+    </div>
+    <p class="crop-hint">The circle shows exactly what will be saved</p>
+    <div class="modal-btns" style="margin-top:14px;">
+      <button class="btn btn-primary" onclick="applyCrop()" id="cropApplyBtn">✅ Use This Photo</button>
+      <button class="btn btn-secondary" onclick="cancelCrop()">Cancel</button>
+    </div>
+  </div>
+</div>
+
+<script type="module">
+import{initializeApp}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-app.js";
+import{getFirestore,collection,addDoc,deleteDoc,doc,onSnapshot,query,where,updateDoc,getDocs,getDoc,setDoc}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-firestore.js";
+import{getAuth,onAuthStateChanged,signOut}from"https://www.gstatic.com/firebasejs/12.7.0/firebase-auth.js";
+
+const cfg={apiKey:"AIzaSyBERjheukFQoN3K8Gi3jzv3Tmh9hnYz6mo",authDomain:"paulivbook.firebaseapp.com",projectId:"paulivbook",storageBucket:"paulivbook.firebasestorage.app",messagingSenderId:"413150157712",appId:"1:413150157712:web:76676d39bc36cde0ea3115"};
+const fbApp=initializeApp(cfg);
+const db=getFirestore(fbApp);
+const auth=getAuth(fbApp);
+
+const SUPA_URL="https://bfvqfyalncexluhpotcd.supabase.co";
+const SUPA_KEY="sb_publishable_XtW7V_u1sPHkmX4xtkGgbg_JsxQpJj3";
+const supabase=window.supabase.createClient(SUPA_URL,SUPA_KEY);
+
+const ADMIN_EMAILS=["jrpaul245@gmail.com"];
+
+let currentUser=null;
+let currentUserSettings={};
+let currentFilter="";
+let currentSearch="";
+let ratingTarget={postId:null,name:null,uid:null,email:null};
+let msgTarget={uid:null,name:null,email:null};
+let currentHireTab="sent";
+let pendingRating=0;
+
+// ── CROP STATE ──
+let cropState={
+  file:null,
+  imgEl:null,
+  scale:1,
+  offsetX:0,
+  offsetY:0,
+  isDragging:false,
+  startX:0,
+  startY:0,
+  lastOffsetX:0,
+  lastOffsetY:0,
+  naturalW:0,
+  naturalH:0,
+  containerW:0,
+  containerH:0,
+};
+
+// ── Open crop modal when user picks a file ──
+window.openCropModal=function(input){
+  const file=input.files[0];
+  if(!file) return;
+  if(file.size>10*1024*1024){alert("File too large! Max 10MB.");return;}
+  input.value="";
+  cropState.file=file;
+
+  // Open modal first so container has real dimensions
+  openModal("crop");
+
+  const url=URL.createObjectURL(file);
+  const img=document.getElementById("cropImg");
+  // Reset transform while loading
+  img.style.cssText="position:absolute;";
+  img.src="";
+
+  img.onload=()=>{
+    cropState.naturalW=img.naturalWidth;
+    cropState.naturalH=img.naturalHeight;
+    const container=document.getElementById("cropContainer");
+    // Use offsetWidth/offsetHeight which work even if display:flex
+    const cW=container.offsetWidth||container.clientWidth||300;
+    const cH=container.offsetHeight||container.clientHeight||300;
+    cropState.containerW=cW;
+    cropState.containerH=cH;
+    // Scale so image fully covers the container (cover mode)
+    const scaleToFitW=cW/cropState.naturalW;
+    const scaleToFitH=cH/cropState.naturalH;
+    const initScale=Math.max(scaleToFitW,scaleToFitH);
+    cropState.scale=initScale;
+    document.getElementById("cropZoom").min=initScale*0.8;
+    document.getElementById("cropZoom").max=initScale*4;
+    document.getElementById("cropZoom").step=0.001;
+    document.getElementById("cropZoom").value=initScale;
+    // Center image
+    cropState.offsetX=(cW - cropState.naturalW*initScale)/2;
+    cropState.offsetY=(cH - cropState.naturalH*initScale)/2;
+    updateCropTransform();
+  };
+
+  // Small delay so modal is painted and container has dimensions
+  setTimeout(()=>{ img.src=url; }, 80);
+};
+
+function updateCropTransform(){
+  const img=document.getElementById("cropImg");
+  img.style.width=cropState.naturalW*cropState.scale+"px";
+  img.style.height=cropState.naturalH*cropState.scale+"px";
+  img.style.left=cropState.offsetX+"px";
+  img.style.top=cropState.offsetY+"px";
+}
+
+// Zoom slider
+document.getElementById("cropZoom").addEventListener("input",function(){
+  const newScale=parseFloat(this.value);
+  // Zoom toward center of container
+  const cx=cropState.containerW/2;
+  const cy=cropState.containerH/2;
+  const ratio=newScale/cropState.scale;
+  cropState.offsetX=cx-(cx-cropState.offsetX)*ratio;
+  cropState.offsetY=cy-(cy-cropState.offsetY)*ratio;
+  cropState.scale=newScale;
+  updateCropTransform();
+});
+
+// Drag
+const container=document.getElementById("cropContainer");
+container.addEventListener("mousedown",e=>{
+  cropState.isDragging=true;
+  cropState.startX=e.clientX;
+  cropState.startY=e.clientY;
+  cropState.lastOffsetX=cropState.offsetX;
+  cropState.lastOffsetY=cropState.offsetY;
+  e.preventDefault();
+});
+container.addEventListener("touchstart",e=>{
+  const t=e.touches[0];
+  cropState.isDragging=true;
+  cropState.startX=t.clientX;
+  cropState.startY=t.clientY;
+  cropState.lastOffsetX=cropState.offsetX;
+  cropState.lastOffsetY=cropState.offsetY;
+},{passive:true});
+
+document.addEventListener("mousemove",e=>{
+  if(!cropState.isDragging) return;
+  cropState.offsetX=cropState.lastOffsetX+(e.clientX-cropState.startX);
+  cropState.offsetY=cropState.lastOffsetY+(e.clientY-cropState.startY);
+  updateCropTransform();
+});
+document.addEventListener("touchmove",e=>{
+  if(!cropState.isDragging) return;
+  const t=e.touches[0];
+  cropState.offsetX=cropState.lastOffsetX+(t.clientX-cropState.startX);
+  cropState.offsetY=cropState.lastOffsetY+(t.clientY-cropState.startY);
+  updateCropTransform();
+},{passive:true});
+
+document.addEventListener("mouseup",()=>{cropState.isDragging=false;});
+document.addEventListener("touchend",()=>{cropState.isDragging=false;});
+
+// ── Apply crop: draw circle region onto canvas → upload ──
+window.applyCrop=async function(){
+  const btn=document.getElementById("cropApplyBtn");
+  btn.textContent="Uploading...";btn.disabled=true;
+
+  const container=document.getElementById("cropContainer");
+  const cW=container.clientWidth;
+  const cH=container.clientHeight;
+  // Circle region in container coords: centered, radius = 38% of container dimension
+  const r=Math.min(cW,cH)*0.38;
+  const cx=cW/2;
+  const cy=cH/2;
+
+  // Output canvas: 400×400 circle crop
+  const OUTPUT=400;
+  const canvas=document.createElement("canvas");
+  canvas.width=OUTPUT;canvas.height=OUTPUT;
+  const ctx=canvas.getContext("2d");
+
+  // Clip to circle
+  ctx.beginPath();
+  ctx.arc(OUTPUT/2,OUTPUT/2,OUTPUT/2,0,Math.PI*2);
+  ctx.clip();
+
+  // Map: what part of the original image maps to the circle bounding box?
+  // Circle bounding box in container: [cx-r, cy-r, 2r, 2r]
+  const boxX=cx-r;
+  const boxY=cy-r;
+  const boxSize=2*r;
+
+  // In image coords:
+  const imgX=(boxX-cropState.offsetX)/cropState.scale;
+  const imgY=(boxY-cropState.offsetY)/cropState.scale;
+  const imgSize=boxSize/cropState.scale;
+
+  const img=document.getElementById("cropImg");
+  ctx.drawImage(img,imgX,imgY,imgSize,imgSize,0,0,OUTPUT,OUTPUT);
+
+  // Convert canvas to blob
+  canvas.toBlob(async(blob)=>{
+    if(!blob){btn.textContent="✅ Use This Photo";btn.disabled=false;alert("Crop failed, try again.");return;}
+    const prog=document.getElementById("uploadProgress");
+    prog.style.display="block";prog.textContent="Uploading...";
+    const ext="jpg";
+    const path=`${currentUser.uid}/avatar_${Date.now()}.${ext}`;
+    const{error}=await supabase.storage.from("avatars").upload(path,blob,{upsert:true,contentType:"image/jpeg"});
+    if(error){prog.textContent="❌ Error: "+error.message;btn.textContent="✅ Use This Photo";btn.disabled=false;return;}
+    const{data}=supabase.storage.from("avatars").getPublicUrl(path);
+    const avatarUrl=data.publicUrl+"?t="+Date.now();
+    currentUserSettings.avatarUrl=avatarUrl;
+    await setDoc(doc(db,"userSettings",currentUser.uid),{...currentUserSettings,avatarUrl});
+    applyUserSettings();
+    prog.textContent="✅ Uploaded!";
+    setTimeout(()=>{prog.style.display="none";},2000);
+    closeModal("crop");
+    btn.textContent="✅ Use This Photo";btn.disabled=false;
+  },"image/jpeg",0.92);
+};
+
+window.cancelCrop=function(){
+  closeModal("crop");
+  // Revoke object url to free memory
+  const img=document.getElementById("cropImg");
+  if(img.src) URL.revokeObjectURL(img.src);
+};
+
+onAuthStateChanged(auth,async(user)=>{
+  if(user){
+    currentUser=user;
+    document.getElementById("sidebarName").textContent=user.displayName||user.email.split("@")[0];
+    document.getElementById("settingsEmail").textContent=user.email;
+    const uSnap=await getDoc(doc(db,"userSettings",user.uid));
+    if(uSnap.exists()){currentUserSettings=uSnap.data();applyUserSettings();}
+    if(ADMIN_EMAILS.includes(user.email)){
+      document.getElementById("adminNav").style.display="flex";
+      document.getElementById("sidebarRole").textContent="Admin";
+    }
+    listenInbox();
+    listenHireRequests();
+    renderFeed();
+  } else {
+    window.location.href="index.html";
+  }
+});
+
+function getAvatarHtml(p,size=46){
+  const color=p.avatarColor||colorFromName(p.name);
+  if(p.avatarUrl){
+    return `<img src="${p.avatarUrl}" style="width:${size}px;height:${size}px;border-radius:50%;object-fit:cover;flex-shrink:0;" onerror="this.outerHTML='<div class=\\'av\\' style=\\'width:${size}px;height:${size}px;background:${color};flex-shrink:0;\\'>${p.name.charAt(0).toUpperCase()}</div>'">`; 
+  }
+  return `<div class="av" style="width:${size}px;height:${size}px;background:${color};flex-shrink:0;">${p.name.charAt(0).toUpperCase()}</div>`;
+}
+
+function applyUserSettings(){
+  const s=currentUserSettings;
+  const initials=(s.displayName||currentUser.email||"?").charAt(0).toUpperCase();
+  const color=s.avatarColor||"#5cb800";
+  const sidebarAv=document.getElementById("sidebarAv");
+  if(s.avatarUrl){
+    sidebarAv.innerHTML=`<img src="${s.avatarUrl}" style="width:100%;height:100%;object-fit:cover;border-radius:50%;">`;
+  } else {
+    sidebarAv.textContent=initials;
+    sidebarAv.style.background=color;
+  }
+  const prev=document.getElementById("settingsAvPreview");
+  if(s.avatarUrl){
+    prev.innerHTML=`<img src="${s.avatarUrl}" style="width:64px;height:64px;object-fit:cover;border-radius:50%;">`;
+    prev.style.background="transparent";
+  } else {
+    prev.innerHTML=initials;
+    prev.style.background=color;
+  }
+  document.getElementById("settingsName").value=s.displayName||"";
+  document.getElementById("settingsBio").value=s.bio||"";
+  document.getElementById("settingsPortfolio").value=s.portfolioUrl||"";
+  document.querySelectorAll(".swatch").forEach(sw=>{sw.classList.toggle("selected",sw.dataset.color===color);});
+  if(s.theme==="dark") applyDark(); else applyLight();
+}
+
+window.goTo=function(page){
+  document.querySelectorAll(".page").forEach(p=>p.classList.remove("active"));
+  document.querySelectorAll(".nav-item").forEach(n=>n.classList.remove("active"));
+  document.getElementById("page-"+page).classList.add("active");
+  document.querySelector(`[data-page="${page}"]`).classList.add("active");
+  if(page==="hire-requests") renderHireTab(currentHireTab);
+  if(page==="admin") loadAdminData();
+  if(window.innerWidth<=768) document.getElementById("sidebar").classList.remove("open");
+};
+
+function renderFeed(){
+  const q=query(collection(db,"people"));
+  onSnapshot(q,snap=>{
+    const feed=document.getElementById("feed");
+    feed.innerHTML="";
+    let count=0;
+    const docs=[...snap.docs].sort((a,b)=>b.data().createdAt-a.data().createdAt);
+    docs.forEach(d=>{
+      const p=d.data();const id=d.id;
+      if(currentSearch&&!p.title.toLowerCase().includes(currentSearch)&&!p.skills.toLowerCase().includes(currentSearch)&&!p.name.toLowerCase().includes(currentSearch)) return;
+      if(currentFilter&&!(p.tags||[]).includes(currentFilter)) return;
+      count++;
+      const isOwner=currentUser&&p.uid===currentUser.uid;
+      const avg=p.ratingCount?(p.ratingSum/p.ratingCount).toFixed(1):null;
+      const tagsHtml=(p.tags||[]).map(t=>`<span class="tag">${t}</span>`).join("");
+      const portfolioHtml=p.portfolioUrl?`<a class="portfolio-link" href="${p.portfolioUrl}" target="_blank">🔗 Portfolio</a>`:"";
+      const starsHtml=avg?`<div style="display:flex;align-items:center;gap:5px;margin-top:4px;"><span style="color:#f59e0b;font-size:13px;">${"★".repeat(Math.round(avg))}</span><span style="font-size:.75rem;color:var(--text3);">${avg} (${p.ratingCount})</span></div>`:"";
+      const card=document.createElement("div");
+      card.className="card profile-card";
+      card.innerHTML=`
+        <div class="ph">
+          ${getAvatarHtml(p,46)}
+          <div style="flex:1;">
+            <div class="name">${p.name}</div>
+            <div class="title">${p.title}</div>
+            ${starsHtml}
+          </div>
+        </div>
+        <div class="tag-row">${tagsHtml}</div>
+        <p class="skills-text">${p.skills}</p>
+        ${portfolioHtml}
+        ${p.proofUrl?`<img src="${p.proofUrl}" class="proof-img" alt="Proof photo">`:""}
+        <div class="btn-row">
+          ${isOwner?`
+            <span class="owner-label">Your post</span>
+            <button class="btn btn-secondary" onclick="openEditPost('${id}')">✏️ Edit</button>
+            <button class="btn btn-danger" onclick="deletePost('${id}')">🗑</button>
+          `:`
+            <button class="btn btn-primary" onclick="openHire('${id}','${p.name}','${p.email||""}')">💼 Hire</button>
+            <button class="btn btn-info" onclick="openMessage('${p.uid}','${p.name}','${p.email||""}')">💬 Message</button>
+            <button class="btn btn-secondary" onclick="openRate('${id}','${p.name}','${p.uid}','${p.email||""}')">⭐ Rate</button>
+          `}
+        </div>`;
+      feed.appendChild(card);
+    });
+    if(count===0) feed.innerHTML=`<div class="empty-state"><div class="icon">😶</div><p>No profiles found.</p></div>`;
+  });
+}
+
+function colorFromName(name){
+  const colors=["#5cb800","#3b82f6","#e84040","#f59e0b","#8b5cf6","#ec4899","#14b8a6"];
+  return colors[(name||"").charCodeAt(0)%colors.length];
+}
+
+window.setFilter=function(f){
+  currentFilter=f;
+  document.querySelectorAll("[data-filter]").forEach(el=>el.classList.toggle("active-filter",el.dataset.filter===f));
+  renderFeed();
+};
+
+document.getElementById("searchInput").addEventListener("keyup",e=>{
+  currentSearch=e.target.value.toLowerCase().trim();
+  renderFeed();
+});
+
+window.openModal=function(type){document.getElementById("overlay-"+type).classList.add("open");};
+window.closeModal=function(type){document.getElementById("overlay-"+type).classList.remove("open");};
+
+window.openEditPost=async function(id){
+  const snap=await getDoc(doc(db,"people",id));
+  const p=snap.data();
+  document.getElementById("postModalTitle").textContent="Edit Profile";
+  document.getElementById("editPostId").value=id;
+  document.getElementById("fullName").value=p.name;
+  document.getElementById("jobTitle").value=p.title;
+  document.getElementById("skills").value=p.skills;
+  document.getElementById("postPortfolio").value=p.portfolioUrl||"";
+  document.querySelectorAll("#tagCheckboxes input[type=checkbox]").forEach(cb=>{cb.checked=(p.tags||[]).includes(cb.value);});
+  openModal("post");
+};
+
+document.getElementById("skillForm").addEventListener("submit",async e=>{
+  e.preventDefault();
+  const submitBtn=e.target.querySelector('[type=submit]');
+  submitBtn.textContent="Posting...";submitBtn.disabled=true;
+  const editId=document.getElementById("editPostId").value;
+  const tags=[...document.querySelectorAll("#tagCheckboxes input:checked")].map(c=>c.value);
+  let proofUrl="";
+  const proofFile=document.getElementById("proofFileInput").files[0];
+  if(proofFile){
+    const status=document.getElementById("proofUploadStatus");
+    status.style.display="block";status.textContent="Uploading proof image...";
+    const ext=proofFile.name.split(".").pop();
+    const path=`proofs/${currentUser.uid}_${Date.now()}.${ext}`;
+    const{error:upErr}=await supabase.storage.from("avatars").upload(path,proofFile,{upsert:true,contentType:proofFile.type});
+    if(!upErr){const{data}=supabase.storage.from("avatars").getPublicUrl(path);proofUrl=data.publicUrl+"?t="+Date.now();}
+    else{status.textContent="⚠️ Proof upload failed, posting without image.";}
+  }
+  const data={name:document.getElementById("fullName").value,title:document.getElementById("jobTitle").value,skills:document.getElementById("skills").value,tags,portfolioUrl:document.getElementById("postPortfolio").value,proofUrl,uid:currentUser.uid,email:currentUser.email,avatarColor:currentUserSettings.avatarColor||"#5cb800",avatarUrl:currentUserSettings.avatarUrl||""};
+  if(editId){await updateDoc(doc(db,"people",editId),data);}
+  else{await addDoc(collection(db,"people"),{...data,createdAt:Date.now(),ratingSum:0,ratingCount:0});}
+  document.getElementById("editPostId").value="";
+  document.getElementById("postModalTitle").textContent="Create Profile";
+  document.getElementById("skillForm").reset();
+  document.getElementById("proofPreview").style.display="none";
+  document.getElementById("proofUploadStatus").style.display="none";
+  submitBtn.textContent="Post";submitBtn.disabled=false;
+  closeModal("post");
+});
+
+window.deletePost=async function(id){if(confirm("Delete this post?")) await deleteDoc(doc(db,"people",id));};
+
+window.openHire=async function(postId,name,recipientEmail){
+  if(!recipientEmail||recipientEmail==="undefined"){alert("No email for this user.");return;}
+  if(!confirm(`Send hire request to ${name}?`)) return;
+  await addDoc(collection(db,"hireRequests"),{fromUid:currentUser.uid,fromEmail:currentUser.email,toName:name,toEmail:recipientEmail,postId,status:"pending",createdAt:Date.now()});
+  try{await emailjs.send("service_i9963op","template_swsoomf",{to_email:recipientEmail,from_email:currentUser.email,message:`${currentUser.email} wants to hire you on Skill Finder!`});}catch(e){}
+  alert(`✅ Hire request sent to ${name}!`);
+};
+
+window.showHireTab=function(tab){
+  currentHireTab=tab;
+  document.getElementById("tabSent").className=tab==="sent"?"btn btn-primary":"btn btn-secondary";
+  document.getElementById("tabReceived").className=tab==="received"?"btn btn-primary":"btn btn-secondary";
+  renderHireTab(tab);
+};
+
+function listenHireRequests(){
+  const qR=query(collection(db,"hireRequests"),where("toEmail","==",currentUser.email));
+  onSnapshot(qR,snap=>{
+    const unread=snap.docs.filter(d=>d.data().status==="pending").length;
+    const badge=document.getElementById("hireBadge");
+    if(unread>0){badge.style.display="inline-block";badge.textContent=unread;}
+    else badge.style.display="none";
+  });
+}
+
+async function renderHireTab(tab){
+  const cont=document.getElementById("hireContent");
+  cont.innerHTML="<p style='color:var(--text3);font-size:.85rem;padding:20px;'>Loading...</p>";
+  let q;
+  if(tab==="sent") q=query(collection(db,"hireRequests"),where("fromUid","==",currentUser.uid));
+  else q=query(collection(db,"hireRequests"),where("toEmail","==",currentUser.email));
+  const snap=await getDocs(q);
+  if(snap.empty){cont.innerHTML=`<div class="empty-state"><div class="icon">📋</div><p>No requests here.</p></div>`;return;}
+  const sorted=[...snap.docs].sort((a,b)=>b.data().createdAt-a.data().createdAt);
+  let rows="";
+  sorted.forEach(d=>{
+    const r=d.data();const id=d.id;
+    const dateStr=new Date(r.createdAt).toLocaleDateString();
+    const statusClass=`status-${r.status}`;
+    const actions=tab==="received"&&r.status==="pending"?`<button class="btn btn-primary" style="font-size:.75rem;padding:5px 10px;" onclick="respondHire('${id}','accepted')">Accept</button> <button class="btn btn-danger" style="font-size:.75rem;padding:5px 10px;" onclick="respondHire('${id}','declined')">Decline</button>`:"—";
+    rows+=`<tr><td>${tab==="sent"?r.toName:r.fromEmail}</td><td><span class="status-badge ${statusClass}">${r.status}</span></td><td>${dateStr}</td><td>${actions}</td></tr>`;
+  });
+  cont.innerHTML=`<div style="overflow-x:auto;background:var(--surface);border-radius:var(--radius);border:1px solid var(--border);"><table class="req-table"><thead><tr><th>${tab==="sent"?"To":"From"}</th><th>Status</th><th>Date</th><th>Actions</th></tr></thead><tbody>${rows}</tbody></table></div>`;
+}
+
+window.respondHire=async function(id,status){
+  await updateDoc(doc(db,"hireRequests",id),{status});
+  renderHireTab("received");
+};
+
+function listenInbox(){
+  const q=query(collection(db,"messages"),where("toUid","==",currentUser.uid));
+  onSnapshot(q,snap=>{
+    const unread=snap.docs.filter(d=>!d.data().read).length;
+    const badge=document.getElementById("inboxBadge");
+    if(unread>0){badge.style.display="inline-block";badge.textContent=unread;}
+    else badge.style.display="none";
+    const list=document.getElementById("msgList");
+    list.innerHTML="";
+    if(snap.empty){list.innerHTML=`<div class="empty-state"><div class="icon">📭</div><p>No messages yet.</p></div>`;return;}
+    const sorted=[...snap.docs].sort((a,b)=>b.data().createdAt-a.data().createdAt);
+    sorted.forEach(d=>{
+      const m=d.data();const id=d.id;
+      const time=new Date(m.createdAt).toLocaleString();
+      const div=document.createElement("div");
+      div.className="msg-card"+(m.read?"":" unread");
+      div.onclick=()=>markRead(id);
+      div.innerHTML=`${!m.read?'<div class="unread-dot"></div>':'<div style="width:8px;"></div>'}<div class="msg-body"><div class="from">${m.fromEmail}</div><div class="msg-text">${m.message}</div><div class="msg-time">${time}</div></div>`;
+      list.appendChild(div);
+    });
+  });
+}
+
+async function markRead(id){await updateDoc(doc(db,"messages",id),{read:true});}
+
+window.openMessage=function(uid,name,email){
+  msgTarget={uid,name,email};
+  document.getElementById("messageModalTitle").textContent=`Message ${name}`;
+  document.getElementById("messageText").value="";
+  openModal("message");
+};
+
+window.sendMessage=async function(){
+  const msg=document.getElementById("messageText").value.trim();
+  if(!msg) return;
+  await addDoc(collection(db,"messages"),{fromUid:currentUser.uid,fromEmail:currentUser.email,toUid:msgTarget.uid,toName:msgTarget.name,message:msg,read:false,createdAt:Date.now()});
+  try{await emailjs.send("service_i9963op","template_swsoomf",{to_email:msgTarget.email,from_email:currentUser.email,message:`${currentUser.email} sent you a message: "${msg}"`});}catch(e){}
+  closeModal("message");
+  alert(`✅ Message sent to ${msgTarget.name}!`);
+};
+
+window.openRate=function(postId,name,uid,email){
+  ratingTarget={postId,name,uid,email};
+  pendingRating=0;
+  document.getElementById("rateTarget").textContent=`Rating for: ${name}`;
+  document.getElementById("reviewText").value="";
+  document.querySelectorAll("#ratingStars .star").forEach(s=>s.classList.remove("lit"));
+  openModal("rate");
+};
+
+window.setRating=function(v){
+  pendingRating=v;
+  document.querySelectorAll("#ratingStars .star").forEach(s=>s.classList.toggle("lit",parseInt(s.dataset.v)<=v));
+};
+
+window.submitRating=async function(){
+  if(!pendingRating){alert("Please select a star rating.");return;}
+  const ref=doc(db,"people",ratingTarget.postId);
+  const snap=await getDoc(ref);
+  if(!snap.exists()) return;
+  const d=snap.data();
+  await updateDoc(ref,{ratingSum:(d.ratingSum||0)+pendingRating,ratingCount:(d.ratingCount||0)+1});
+  await addDoc(collection(db,"reviews"),{postId:ratingTarget.postId,toUid:ratingTarget.uid,fromUid:currentUser.uid,fromEmail:currentUser.email,rating:pendingRating,review:document.getElementById("reviewText").value.trim(),createdAt:Date.now()});
+  closeModal("rate");
+  alert("✅ Rating submitted!");
+};
+
+window.pickColor=function(el){
+  document.querySelectorAll(".swatch").forEach(s=>s.classList.remove("selected"));
+  el.classList.add("selected");
+  const c=el.dataset.color;
+  const prev=document.getElementById("settingsAvPreview");
+  prev.innerHTML=(currentUserSettings.displayName||currentUser.email||"?").charAt(0).toUpperCase();
+  prev.style.background=c;
+  currentUserSettings.avatarUrl="";
+};
+
+window.saveSettings=async function(){
+  const color=document.querySelector(".swatch.selected")?.dataset.color||"#5cb800";
+  const settings={displayName:document.getElementById("settingsName").value,bio:document.getElementById("settingsBio").value,portfolioUrl:document.getElementById("settingsPortfolio").value,avatarColor:color,avatarUrl:currentUserSettings.avatarUrl||"",theme:currentUserSettings.theme||"light"};
+  await setDoc(doc(db,"userSettings",currentUser.uid),settings);
+  currentUserSettings=settings;
+  applyUserSettings();
+  alert("✅ Settings saved!");
+};
+
+window.setTheme=function(t){
+  currentUserSettings.theme=t;
+  if(t==="dark") applyDark(); else applyLight();
+  setDoc(doc(db,"userSettings",currentUser.uid),{...currentUserSettings,theme:t});
+};
+
+function applyDark(){
+  document.documentElement.style.setProperty("--bg","#111714");
+  document.documentElement.style.setProperty("--surface","#1c221a");
+  document.documentElement.style.setProperty("--surface2","#252c22");
+  document.documentElement.style.setProperty("--text","#eaf2e5");
+  document.documentElement.style.setProperty("--text2","#99a98e");
+  document.documentElement.style.setProperty("--border","#2e362a");
+}
+function applyLight(){
+  document.documentElement.style.setProperty("--bg","#f4f6f2");
+  document.documentElement.style.setProperty("--surface","#ffffff");
+  document.documentElement.style.setProperty("--surface2","#f0f2ee");
+  document.documentElement.style.setProperty("--text","#1a1f16");
+  document.documentElement.style.setProperty("--text2","#5a6354");
+  document.documentElement.style.setProperty("--border","#e0e5da");
+}
+
+async function loadAdminData(){
+  const [postsSnap,msgSnap,hireSnap,settingsSnap]=await Promise.all([
+    getDocs(collection(db,"people")),
+    getDocs(collection(db,"messages")),
+    getDocs(collection(db,"hireRequests")),
+    getDocs(collection(db,"userSettings"))
+  ]);
+  document.getElementById("statPosts").textContent=postsSnap.size;
+  document.getElementById("statMessages").textContent=msgSnap.size;
+  document.getElementById("statHires").textContent=hireSnap.size;
+  document.getElementById("statUsers").textContent=settingsSnap.size;
+  let rows="";
+  postsSnap.forEach(d=>{
+    const p=d.data();const id=d.id;
+    rows+=`<tr><td>${p.name}</td><td>${p.title}</td><td style="font-size:.75rem;color:var(--text3);">${p.email||"—"}</td><td><button class="btn btn-danger" style="font-size:.75rem;padding:4px 10px;" onclick="adminDelete('${id}')">Delete</button></td></tr>`;
+  });
+  document.getElementById("adminTbody").innerHTML=rows||`<tr><td colspan="4" style="text-align:center;color:var(--text3);padding:20px;">No posts.</td></tr>`;
+}
+
+window.adminDelete=async function(id){if(confirm("Admin delete this post?")) await deleteDoc(doc(db,"people",id));};
+window.logoutUser=async function(){if(confirm("Logout?")) await signOut(auth);};
+window.toggleSidebar=function(){document.getElementById("sidebar").classList.toggle("open");};
+window.previewProof=function(input){
+  const file=input.files[0];
+  if(!file) return;
+  const preview=document.getElementById("proofPreview");
+  preview.src=URL.createObjectURL(file);
+  preview.style.display="block";
+};
+</script>
+</body>
+</html>
